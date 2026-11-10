@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Interventions - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Intervention plans</h1><div class="grid" id="st"></div>
+<div class="two"><div class="card"><h2>New intervention</h2><form id="f"><label>Student</label><select id="s" required></select>
+<label>Type</label><select id="t"><option>Academic Support</option><option>Behavioral Support</option><option>Family Engagement</option><option>Intensive Support</option><option>Peer Support</option></select>
+<label>Plan and notes</label><textarea id="n" rows="4" required placeholder="Parent visit done, tutoring from Monday..."></textarea><button class="btn ok">Create plan</button></form></div>
+<div class="card"><h2>All plans</h2><div id="l"></div></div></div></div>
+<script src="app.js"></script><script>
+init('interventions.html','employee');let d=DB.get();
+$('s').innerHTML=d.students.map(s=>`<option value="${s.id}">${esc(s.name)} (${s.id}) - ${lvl(s)} risk</option>`).join('');
+const q=new URLSearchParams(location.search).get('sid');if(q)$('s').value=q;
+function draw(){const I=d.interventions;
+ $('st').innerHTML=[['Active','medium'],['Completed','low']].map(([k,c])=>`<div class="stat ${c}"><b>${I.filter(i=>i.status==k).length}</b><span>${k}</span></div>`).join('')+`<div class="stat"><b>${I.length}</b><span>Total plans</span></div>`;
+ $('l').innerHTML=I.slice().reverse().map(i=>{const s=d.students.find(x=>x.id==i.sid)||{name:i.sid};const done=i.status=='Completed';
+  return `<div class="item ${done?'low':'medium'}"><b>${esc(s.name)}</b> <span class="badge ${done?'low':'medium'}">${i.status}</span><br><small>${esc(i.type)} · started ${i.date}</small><p>${esc(i.notes)}</p>
+  <div class="pbar"><i style="width:${i.progress}%"></i></div><small>Progress ${i.progress}%</small><br>
+  ${done?'':`<button class="btn s" onclick="up(${i.id})">+10% progress</button><button class="btn s ok" onclick="fin(${i.id})">Mark completed</button>`}<button class="btn s r" onclick="del(${i.id})">Delete</button></div>`}).join('')||'<p>No plans yet. Create the first one.</p>'}
+const get=id=>d.interventions.find(i=>i.id==id);
+function up(id){const i=get(id);i.progress=Math.min(100,i.progress+10);if(i.progress==100)i.status='Completed';DB.save(d);draw()}
+function fin(id){const i=get(id);i.progress=100;i.status='Completed';DB.save(d);draw()}
+function del(id){if(confirm('Delete this plan?')){d.interventions=d.interventions.filter(i=>i.id!=id);DB.save(d);draw()}}
+$('f').onsubmit=e=>{e.preventDefault();d.interventions.push({id:Date.now(),sid:$('s').value,type:$('t').value,notes:$('n').value,progress:0,status:'Active',date:new Date().toISOString().slice(0,10)});DB.save(d);$('n').value='';draw()};
+draw();</script></body></html>
