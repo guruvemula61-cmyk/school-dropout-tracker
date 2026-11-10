@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Dashboard</h1>
+<div class="grid"><div class="stat"><b id="t"></b><span>Total students</span></div><div class="stat low"><b id="a"></b><span>Average attendance</span></div>
+<div class="stat high"><b id="r"></b><span>At-risk students</span></div><div class="stat critical"><b id="x"></b><span>Dropped out</span></div><div class="stat medium"><b id="i"></b><span>Active interventions</span></div></div>
+<div class="two"><div class="card"><h2>Add new student</h2><form id="f">
+<label>Student ID</label><input name="id" required placeholder="ST009"><label>Name</label><input name="name" required>
+<label>Class</label><select name="grade"><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select>
+<label>Gender</label><select name="gender"><option>Male</option><option>Female</option></select><label>Village / area</label><input name="village" required>
+<label>Parent phone</label><input name="phone" type="tel" required><label>Attendance %</label><input name="att" type="number" min="0" max="100" step="0.1" required>
+<label>Academic average %</label><input name="acad" type="number" min="0" max="100" required><button class="btn">Add student</button><div class="msg" id="e"></div></form></div>
+<div class="card"><h2>Students needing attention</h2><div class="tw"><table><tbody id="list"></tbody></table></div>
+<a class="btn" href="risk.html">See full risk analysis</a></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script><script src="app.js"></script><script>
+init('dashboard.html','employee');let d=DB.get();
+function draw(){const A=d.students.filter(s=>s.status=='Active'),ar=A.filter(s=>['critical','high'].includes(lvl(s)));
+ $('t').textContent=d.students.length;$('a').textContent=(A.reduce((n,s)=>n+s.att,0)/(A.length||1)).toFixed(1)+'%';$('r').textContent=ar.length;
+ $('x').textContent=d.students.length-A.length;$('i').textContent=d.interventions.filter(i=>i.status=='Active').length;
+ $('list').innerHTML=ar.sort((a,b)=>risk(b)-risk(a)).map(s=>`<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade} · ${esc(s.village)}</small></td><td>${s.att}%</td><td><span class="badge ${lvl(s)}">${lvl(s)}</span></td><td><a class="btn s" href="${sms(s)}">SMS parent</a><a class="btn s g" href="tel:${esc(s.phone)}">Call</a></td></tr>`).join('')||'<tr><td>No at-risk students right now.</td></tr>'}
+$('f').onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.id=f.id.trim().toUpperCase();
+ if(d.students.some(s=>s.id==f.id)){$('e').textContent='This Student ID already exists. Use a new ID.';return}
+ d.students.push({...f,grade:+f.grade,att:+f.att,acad:+f.acad,status:'Active'});DB.save(d);e.target.reset();$('e').textContent='';draw()};
+draw();</script></body></html>
