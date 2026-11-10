@@ -1,0 +1,25 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Students - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Students</h1><div class="two"><div class="card"><h2 id="ttl">Add new student</h2><form id="f">
+<label>Student ID</label><input name="id" required placeholder="ST010"><label>Name</label><input name="name" required>
+<label>Class</label><select name="grade"><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select>
+<label>Gender</label><select name="gender"><option>Male</option><option>Female</option></select><label>Village / area</label><input name="village" required>
+<label>Parent phone</label><input name="phone" type="tel" required><label>Starting attendance % (daily marking updates it)</label><input name="att" type="number" min="0" max="100" step="0.1" required>
+<label>Academic average %</label><input name="acad" type="number" min="0" max="100" required>
+<label>Family income per month (₹)</label><input name="income" type="number" min="0" required><label>Number of siblings</label><input name="sibs" type="number" min="0" value="1" required>
+<label>Distance to school (km)</label><input name="dist" type="number" min="0" step="0.5" required><label>Family migrates for work?</label><select name="mig"><option value="0">No</option><option value="1">Yes</option></select>
+<button class="btn ok" id="sub">Add student</button> <button class="btn g" type="button" onclick="clr()">Clear</button><div class="msg" id="e"></div></form></div>
+<div class="card"><h2>All students</h2><div class="tw"><table><tbody id="tb"></tbody></table></div></div></div></div>
+<script src="app.js"></script><script>
+init('students.html','employee');let d=DB.get(),ed=null;const F=$('f'),K=['id','name','grade','gender','village','phone','att','acad','income','sibs','dist','mig'];
+function draw(){$('tb').innerHTML=d.students.map(s=>`<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade} · ${esc(s.village)}</small></td><td><span class="badge ${lvl(s)}">${lvl(s)}</span></td><td>${s.status=='Active'?'Active':'Dropped out'}</td><td><button class="btn s" onclick="edit('${s.id}')">Edit</button><button class="btn s r" onclick="del('${s.id}')">Delete</button></td></tr>`).join('')}
+function clr(){F.reset();ed=null;F.elements.id.readOnly=F.elements.att.readOnly=false;$('sub').textContent='Add student';$('ttl').textContent='Add new student';$('e').textContent=''}
+function edit(id){const s=d.students.find(x=>x.id==id);ed=id;K.forEach(k=>F.elements[k].value=s[k]);F.elements.id.readOnly=F.elements.att.readOnly=true;$('sub').textContent='Save changes';$('ttl').textContent='Edit '+s.name;scrollTo(0,0)}
+function del(id){if(confirm('Delete this student and their plans? This cannot be undone.')){d.students=d.students.filter(s=>s.id!=id);d.interventions=d.interventions.filter(i=>i.sid!=id);DB.save(d);if(ed==id)clr();draw()}}
+F.onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(F));f.id=f.id.trim().toUpperCase();
+ const n={...f,grade:+f.grade,att:+f.att,acad:+f.acad,income:+f.income,sibs:+f.sibs,dist:+f.dist,mig:+f.mig};
+ if(ed){const s=d.students.find(x=>x.id==ed);Object.assign(s,n,{att:s.att})}
+ else{if(d.students.some(s=>s.id==n.id)){$('e').textContent='This Student ID already exists. Use a new ID.';return}
+  d.students.push({...n,b:[n.att,100],log:{},status:'Active',reason:'',re:null})}
+ DB.save(d);clr();draw()};
+draw();</script></body></html>
