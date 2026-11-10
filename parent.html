@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Child - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>My child</h1>
+<div id="none" class="card" style="display:none"><h2>Student not found</h2><p>This Student ID is not in the school records. Please log in again or contact the school.</p></div>
+<div id="main">
+<div class="grid" id="st"></div>
+<div class="two">
+<div class="card"><h2>Student details</h2><div class="tw"><table><tbody id="info"></tbody></table></div></div>
+<div class="card"><h2>Support plans from school</h2><div id="plans"></div></div>
+<div class="card"><h2>Schemes your child may get</h2><div id="sch"></div></div>
+</div></div></div>
+<script src="app.js"></script><script>
+const u=init('parent.html','parent');
+if(u){const d=DB.get(),s=d.students.find(x=>x.id==u.id);
+ if(!s){$('main').style.display='none';$('none').style.display='block'}
+ else{const L=lvl(s),drop=s.status!='Active',msg={critical:'Needs urgent attention',high:'Needs attention',medium:'Watch closely',low:'Doing well'};
+  $('st').innerHTML=`<div class="stat ${L}"><b>${drop?'Dropped out':msg[L]}</b><span>Overall status</span></div>
+  <div class="stat ${s.att>=75?'low':s.att>=60?'high':'critical'}"><b>${s.att}%</b><span>Attendance</span></div>
+  <div class="stat ${s.acad>=60?'low':s.acad>=40?'high':'critical'}"><b>${s.acad}%</b><span>Academic average</span></div>`;
+  $('info').innerHTML=[['Name',s.name],['Student ID',s.id],['Class',s.grade],['Gender',s.gender],['Village / area',s.village],['Risk level',`<span class="badge ${L}">${L}</span>`],['Status',s.status]]
+   .map(([k,v])=>`<tr><th>${k}</th><td>${k=='Risk level'?v:esc(v)}</td></tr>`).join('');
+  const P=d.interventions.filter(i=>i.sid==s.id);
+  $('plans').innerHTML=P.map(i=>{const done=i.status=='Completed';return `<div class="item ${done?'low':'medium'}"><b>${esc(i.type)}</b> <span class="badge ${done?'low':'medium'}">${i.status}</span><br><small>Started ${i.date}</small><p>${esc(i.notes)}</p><div class="pbar"><i style="width:${i.progress}%"></i></div><small>Progress ${i.progress}%</small></div>`}).join('')||'<p>No support plan right now.</p>';$('sch').innerHTML=schemes(s).map(x=>`<div class="item low"><b>${esc(x[0])}</b>${x[1]?`<br><small>${esc(x[1])}</small>`:''}</div>`).join('')+'<small>Indicative only. Please confirm eligibility at the school office.</small>'}}
+</script></body></html>
