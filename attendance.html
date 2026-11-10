@@ -1,20 +1,22 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Attendance - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
-<h1>Attendance report</h1>
-<div class="card"><div class="ch"><canvas id="c"></canvas></div></div>
-<div class="card"><div class="bar"><div><label>Class</label><select id="g"><option value="">All classes</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
-<div><label>Attendance</label><select id="b"><option value="">All</option><option value="low">Excellent (90%+)</option><option value="medium">Good (75-89%)</option><option value="high">At risk (60-74%)</option><option value="critical">Critical (below 60%)</option></select></div>
-<div><label>Search name</label><input id="q" placeholder="Type a name"></div><button class="btn" onclick="exp()">Export CSV</button><button class="btn g" onclick="print()">Print</button></div>
-<div class="tw"><table><thead><tr><th>Name</th><th>ID</th><th>Class</th><th>Village</th><th>Attendance</th><th>Band</th><th></th></tr></thead><tbody id="tb"></tbody></table></div></div></div>
+<h1>Daily attendance</h1>
+<div class="card"><div class="bar"><div><label>Date</label><input type="date" id="dt"></div>
+<div><label>Class</label><select id="g"><option value="">All classes</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+<button class="btn g" onclick="mk('P')">All present</button><button class="btn" onclick="save()">Save attendance</button></div>
+<div class="tw"><table><thead><tr><th>Student</th><th>Overall</th><th>Absent streak</th><th>Today</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="msg" id="m" style="color:#10b981"></div><small>P = Present, A = Absent. 3 days absent in a row = red flag, 5 days = critical alert.</small></div>
+<div class="card"><h2>Class-wise average attendance</h2><div class="ch"><canvas id="c"></canvas></div><button class="btn" onclick="exp()">Export CSV</button></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script><script src="app.js"></script><script>
-init('attendance.html','employee');let d=DB.get(),rows=[];
-const band=a=>a>=90?'low':a>=75?'medium':a>=60?'high':'critical',nm={low:'Excellent',medium:'Good',high:'At risk',critical:'Critical'};
-function draw(){const g=$('g').value,b=$('b').value,q=$('q').value.toLowerCase();
- rows=d.students.filter(s=>(!g||s.grade==g)&&(!b||band(s.att)==b)&&s.name.toLowerCase().includes(q));
- $('tb').innerHTML=rows.map(s=>`<tr><td>${esc(s.name)}</td><td>${s.id}</td><td>${s.grade}</td><td>${esc(s.village)}</td><td><b>${s.att}%</b></td><td><span class="badge ${band(s.att)}">${nm[band(s.att)]}</span></td><td><button class="btn s" onclick="edit('${s.id}')">Update</button></td></tr>`).join('')||'<tr><td colspan="7">No students match these filters.</td></tr>';
- const G=[...new Set(d.students.map(s=>s.grade))].sort((a,b)=>a-b),av=G.map(x=>{const t=d.students.filter(s=>s.grade==x);return +(t.reduce((n,s)=>n+s.att,0)/t.length).toFixed(1)});
- chart('c','bar',G.map(x=>'Class '+x),av,av.map(v=>COL[band(v)]),'Average attendance %')}
-function edit(id){const s=d.students.find(x=>x.id==id),v=prompt('New attendance % for '+s.name,s.att);if(v===null)return;
- const n=parseFloat(v);if(isNaN(n)||n<0||n>100){alert('Enter a number from 0 to 100.');return}s.att=n;DB.save(d);draw()}
-function exp(){csv('attendance.csv',[['ID','Name','Class','Village','Attendance %']].concat(rows.map(s=>[s.id,s.name,s.grade,s.village,s.att])))}
-['g','b'].forEach(i=>$(i).onchange=draw);$('q').oninput=draw;draw();</script></body></html>
+init('attendance.html','employee');let d=DB.get(),cur={},rows=[];
+$('dt').value=$('dt').max=dt(0);const act=()=>d.students.filter(s=>s.status=='Active');
+function load(){cur={};act().forEach(s=>cur[s.id]=s.log[$('dt').value]||'P')}
+function draw(){const g=$('g').value;rows=act().filter(s=>!g||s.grade==g);
+ $('tb').innerHTML=rows.map(s=>{const n=streak(s);return `<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade}</small></td><td><b>${s.att}%</b></td><td>${n>=3?`<span class="badge ${n>=5?'critical':'high'}">${n} days</span>`:n||'-'}</td><td class="pa"><button class="P${cur[s.id]=='P'?' on':''}" onclick="st('${s.id}','P')">P</button><button class="A${cur[s.id]=='A'?' on':''}" onclick="st('${s.id}','A')">A</button></td></tr>`}).join('')||'<tr><td colspan="4">No students.</td></tr>'}
+function bars(){const G=[...new Set(act().map(s=>s.grade))].sort((a,b)=>a-b),av=G.map(x=>{const t=act().filter(s=>s.grade==x);return +(t.reduce((n,s)=>n+s.att,0)/t.length).toFixed(1)});
+ chart('c','bar',G.map(x=>'Class '+x),av,av.map(v=>COL[v>=90?'low':v>=75?'medium':v>=60?'high':'critical']),'Average attendance %')}
+function st(id,v){cur[id]=v;draw()}
+function mk(v){rows.forEach(s=>cur[s.id]=v);draw()}
+function save(){const t=$('dt').value;if(!t)return;rows.forEach(s=>{s.log[t]=cur[s.id];calc(s)});DB.save(d);$('m').textContent='Saved for '+t+'. Percentages and alerts are updated.';draw();bars()}
+function exp(){csv('attendance.csv',[['ID','Name','Class','Village','Attendance %','Absent streak']].concat(act().map(s=>[s.id,s.name,s.grade,s.village,s.att,streak(s)])))}
+$('dt').onchange=()=>{load();draw()};$('g').onchange=draw;load();draw();bars();</script></body></html>
