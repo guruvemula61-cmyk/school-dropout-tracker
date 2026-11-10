@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dropout Risk - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Dropout risk analysis</h1><div class="grid" id="cards"></div>
+<div class="two"><div class="card"><h2>Risk levels</h2><div class="ch"><canvas id="c"></canvas></div><small>Risk score = 60% attendance gap + 40% academic gap. 55+ critical, 40+ high, 25+ medium.</small></div>
+<div class="card"><h2>Students</h2><div class="bar"><div><label>Risk level</label><select id="f"><option value="">All</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select></div></div>
+<div class="tw"><table><thead><tr><th>Student</th><th>Score</th><th>Level</th><th>Attendance</th><th>Marks</th><th></th></tr></thead><tbody id="tb"></tbody></table></div></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script><script src="app.js"></script><script>
+init('risk.html','employee');let d=DB.get();const LV=['critical','high','medium','low'];
+function draw(){const A=d.students.filter(s=>s.status=='Active'),f=$('f').value;
+ $('cards').innerHTML=LV.map(l=>`<div class="stat ${l}"><b>${A.filter(s=>lvl(s)==l).length}</b><span>${l} risk</span></div>`).join('');
+ chart('c','doughnut',LV,LV.map(l=>A.filter(s=>lvl(s)==l).length),LV.map(l=>COL[l]),'Students');
+ $('tb').innerHTML=d.students.filter(s=>!f||lvl(s)==f).sort((a,b)=>risk(b)-risk(a)).map(s=>{const dr=s.status!='Active';
+  return `<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade}${dr?' · Dropped out':''}</small></td><td><b>${risk(s)}</b></td><td><span class="badge ${lvl(s)}">${lvl(s)}</span></td><td>${s.att}%</td><td>${s.acad}%</td>
+  <td>${dr?`<button class="btn s ok" onclick="mark('${s.id}','Active')">Re-enrol</button>`:`<a class="btn s" href="interventions.html?sid=${s.id}">Intervene</a><button class="btn s r" onclick="mark('${s.id}','Dropped Out')">Mark dropped</button>`}</td></tr>`}).join('')}
+function mark(id,st){if(st!='Active'&&!confirm('Mark this student as dropped out?'))return;d.students.find(s=>s.id==id).status=st;DB.save(d);draw()}
+$('f').onchange=draw;draw();</script></body></html>
