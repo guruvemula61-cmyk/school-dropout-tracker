@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Re-enrolment - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Re-enrolment tracking</h1><div class="grid" id="st"></div><div class="card" id="l"></div></div>
+<script src="app.js"></script><script>
+init('reenrol.html','employee');let d=DB.get();const g=id=>d.students.find(s=>s.id==id);
+function draw(){const D=d.students.filter(s=>s.status!='Active'),R=d.students.filter(s=>s.status=='Active'&&s.re&&s.re.done);
+ $('st').innerHTML=`<div class="stat critical"><b>${D.length}</b><span>Dropped out, to bring back</span></div><div class="stat low"><b>${R.length}</b><span>Re-enrolled</span></div>`;
+ $('l').innerHTML='<h2>Dropped-out students</h2>'+(D.map(s=>{const r=s.re||{};return `<div class="item critical"><b>${esc(s.name)}</b> <small>${s.id} · Class ${s.grade} · ${esc(s.village)} · ${esc(s.phone)}</small>
+ <label>Reason for dropout</label><select id="r${s.id}">${REASONS.map(x=>`<option${x==s.reason?' selected':''}>${x}</option>`).join('')}</select>
+ <label>Home visit date</label><input type="date" id="v${s.id}" value="${esc(r.visit||'')}">
+ <label>Notes (what the family said, next step)</label><textarea id="n${s.id}" rows="2">${esc(r.notes||'')}</textarea>
+ <button class="btn s" onclick="save('${s.id}')">Save</button><button class="btn s ok" onclick="back('${s.id}')">Re-enrolled in school</button></div>`}).join('')||'<p>No dropped-out students. Use "Mark dropped" on the Dropout Risk page.</p>')
+ +(R.length?'<h2 style="margin-top:20px">Re-enrolled</h2>'+R.map(s=>`<div class="item low"><b>${esc(s.name)}</b> <small>${s.id} · re-enrolled on ${esc(s.re.done)}</small><p>${esc(s.re.notes||'')}</p></div>`).join(''):'')}
+function save(id){const s=g(id);s.reason=$('r'+id).value;s.re={...(s.re||{}),visit:$('v'+id).value,notes:$('n'+id).value};DB.save(d)}
+function back(id){save(id);const s=g(id);s.status='Active';s.re.done=dt(0);DB.save(d);draw()}
+draw();</script></body></html>
