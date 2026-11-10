@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports - School Dropout Tracker</title><link rel="stylesheet" href="style.css"></head><body><div class="wrap"><div class="nav" id="nav"></div>
+<h1>Summary report</h1><div class="grid" id="st"></div>
+<div class="card"><div class="bar"><button class="btn" onclick="exp()">Export CSV</button><button class="btn g" onclick="print()">Print report</button><button class="btn r" onclick="if(confirm('Reset all data to the sample data?')){DB.reset();location.reload()}">Reset demo data</button></div><div class="ch"><canvas id="c"></canvas></div></div>
+<div class="two"><div class="card"><h2>Class-wise</h2><div class="tw"><table id="g"></table></div></div><div class="card"><h2>Village-wise</h2><div class="tw"><table id="v"></table></div></div></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script><script src="app.js"></script><script>
+init('monthly.html','employee');const d=DB.get(),S=d.students;let out=[];
+function grp(k){return [...new Set(S.map(s=>s[k]))].sort().map(x=>{const t=S.filter(s=>s[k]==x),A=t.filter(s=>s.status=='Active');
+ return [x,t.length,+(t.reduce((n,s)=>n+s.att,0)/t.length).toFixed(1),A.filter(s=>['critical','high'].includes(lvl(s))).length,t.length-A.length]})}
+const tbl=(h,r)=>`<thead><tr><th>${h}</th><th>Students</th><th>Avg att.</th><th>At risk</th><th>Dropped</th></tr></thead><tbody>${r.map(x=>'<tr>'+x.map((c,i)=>`<td>${i?c+(i==2?'%':''):esc(c)}</td>`).join('')+'</tr>').join('')}</tbody>`;
+const G=grp('grade'),V=grp('village');$('g').innerHTML=tbl('Class',G);$('v').innerHTML=tbl('Village',V);out=[['Group','Name','Students','Avg attendance %','At risk','Dropped out']].concat(G.map(r=>['Class',...r]),V.map(r=>['Village',...r]));
+const A=S.filter(s=>s.status=='Active');
+$('st').innerHTML=`<div class="stat"><b>${S.length}</b><span>Total students</span></div><div class="stat critical"><b>${S.length-A.length}</b><span>Dropped out</span></div><div class="stat high"><b>${A.filter(s=>['critical','high'].includes(lvl(s))).length}</b><span>At risk</span></div><div class="stat low"><b>${d.interventions.filter(i=>i.status=='Completed').length}</b><span>Interventions completed</span></div>`;
+chart('c','bar',G.map(r=>'Class '+r[0]),G.map(r=>r[3]),'#f59e0b','At-risk students');
+function exp(){csv('summary-report.csv',out)}</script></body></html>
