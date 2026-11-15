@@ -9,10 +9,10 @@
 <label>Family income per month (₹)</label><input name="income" type="number" min="0" required><label>Number of siblings</label><input name="sibs" type="number" min="0" value="1" required>
 <label>Distance to school (km)</label><input name="dist" type="number" min="0" step="0.5" required><label>Family migrates for work?</label><select name="mig"><option value="0">No</option><option value="1">Yes</option></select>
 <button class="btn ok" id="sub">Add student</button> <button class="btn g" type="button" onclick="clr()">Clear</button><div class="msg" id="e"></div></form></div>
-<div class="card"><h2>All students</h2><div class="tw"><table><tbody id="tb"></tbody></table></div></div></div></div>
+<div class="card"><h2>All students</h2><input id="q" placeholder="Search by name, ID or village"><br><br><div class="tw"><table><tbody id="tb"></tbody></table></div></div></div></div>
 <script src="app.js"></script><script>
 init('students.html','employee');let d=DB.get(),ed=null;const F=$('f'),K=['id','name','grade','gender','village','phone','att','acad','income','sibs','dist','mig'];
-function draw(){$('tb').innerHTML=d.students.map(s=>`<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade} · ${esc(s.village)}</small></td><td><span class="badge ${lvl(s)}">${lvl(s)}</span></td><td>${s.status=='Active'?'Active':'Dropped out'}</td><td><button class="btn s" onclick="edit('${s.id}')">Edit</button><button class="btn s r" onclick="del('${s.id}')">Delete</button></td></tr>`).join('')}
+function draw(){$('tb').innerHTML=d.students.filter(s=>(s.name+s.id+s.village).toLowerCase().includes($('q').value.toLowerCase())).map(s=>`<tr><td>${esc(s.name)}<br><small>${s.id} · Class ${s.grade} · ${esc(s.village)}</small></td><td><span class="badge ${lvl(s)}">${lvl(s)}</span></td><td>${s.status=='Active'?'Active':'Dropped out'}</td><td><button class="btn s" onclick="edit('${s.id}')">Edit</button><button class="btn s r" onclick="del('${s.id}')">Delete</button></td></tr>`).join('')}
 function clr(){F.reset();ed=null;F.elements.id.readOnly=F.elements.att.readOnly=false;$('sub').textContent='Add student';$('ttl').textContent='Add new student';$('e').textContent=''}
 function edit(id){const s=d.students.find(x=>x.id==id);ed=id;K.forEach(k=>F.elements[k].value=s[k]);F.elements.id.readOnly=F.elements.att.readOnly=true;$('sub').textContent='Save changes';$('ttl').textContent='Edit '+s.name;scrollTo(0,0)}
 function del(id){if(confirm('Delete this student and their plans? This cannot be undone.')){d.students=d.students.filter(s=>s.id!=id);d.interventions=d.interventions.filter(i=>i.sid!=id);DB.save(d);if(ed==id)clr();draw()}}
@@ -22,4 +22,4 @@ F.onsubmit=e=>{e.preventDefault();const f=Object.fromEntries(new FormData(F));f.
  else{if(d.students.some(s=>s.id==n.id)){$('e').textContent='This Student ID already exists. Use a new ID.';return}
   d.students.push({...n,b:[n.att,100],log:{},status:'Active',reason:'',re:null})}
  DB.save(d);clr();draw()};
-draw();</script></body></html>
+$('q').oninput=draw;draw();</script></body></html>
